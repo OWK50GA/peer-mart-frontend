@@ -1,16 +1,21 @@
 "use client"
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Button } from "../ui/button";
-import { useConfig, useWriteContract } from "wagmi";
+// import { useConfig, useWriteContract } from "wagmi";
 import { ECommerceABI, ECommerceAddress } from "@/lib/abi/ecommerce-abi";
-import { waitForTransactionReceipt } from "@wagmi/core";
+// import { waitForTransactionReceipt } from "@wagmi/core";
 import { Toaster } from "../ui/sonner";
 import { toast } from "sonner";
 import { FileUploadWithPreview } from "../file-upload-with-preview";
+import { useActiveAccount, useSendTransaction } from "thirdweb/react";
+import { useRouter } from "next/navigation";
+import { getContract, prepareContractCall, PreparedTransaction } from "thirdweb";
+import { client } from "@/contexts/thirdwebclient";
+import { avalancheFuji } from "thirdweb/chains";
 
 type RegisterData = {
     name: string,
@@ -32,15 +37,15 @@ export default function RegisterSeller() {
     const handleInputChange = (field: keyof RegisterData, value: any) => {
         setFormdata(prev => ({ ...prev, [field]: value }));
         if (errors[field]) {
-        setErrors(prev => ({ ...prev, [field]: "" }));
+            setErrors(prev => ({ ...prev, [field]: "" }));
         }
-        if (field === "profileUri"){
+        if (field === "profileUri") {
             console.log(value)
         }
     };
 
     const [errors, setErrors] = useState<Partial<RegisterData>>({})
-    const config = useConfig();
+    // const config = useConfig();
 
     const validateForm = () => {
         if (formdata.name.length < 1) errors.name = "Name is Required"
@@ -53,43 +58,76 @@ export default function RegisterSeller() {
         return true
     }
 
-    const {
-        data,
-        isPending,
-        writeContractAsync: registerUserAsync,
-        error,
-        isSuccess
-    } = useWriteContract()
+    const contract = getContract({
+        client: client,
+        chain: avalancheFuji,
+        address: ECommerceAddress
+    })
 
-    const handleSubmit = async () => {
+    const account = useActiveAccount();
+    const connectedAddress = account?.address;
+
+    const { push } = useRouter();
+    const { mutateAsync: registerSeller, isPending, isSuccess, isError } = useSendTransaction();
+
+    const transaction = useMemo(() => {
         const isValid = validateForm();
-        if (!isValid) return;
+        if (!contract || !connectedAddress || !isValid) return;
 
+        const call = prepareContractCall({
+            contract,
+            method: "function registerSeller(string memory _name, string memory _profileURI, string memory _location, string memory _phoneNumber) public",
+            params: [formdata.name, formdata.profileUri, formdata.location, formdata.phoneNumber],
+        })
+        return call;
+    }, [formdata])
+
+    const handleRegister = async () => {
         try {
-            const result = await registerUserAsync({
-                abi: ECommerceABI,
-                 address: ECommerceAddress as `0x${string}`,
-                functionName: "registerSeller",
-                args: [formdata.name, formdata.profileUri, formdata.location, formdata.phoneNumber]
-            })
-            const approvalReceipt = await waitForTransactionReceipt(config, {
-                hash: result,
-                confirmations: 1
-            })
-    
-            console.log("Approval confirmed: ", approvalReceipt);
-            toast.success("Transaction Confirmed")
+            let txHash = await registerSeller(transaction as PreparedTransaction);
         } catch (err) {
-            console.error(error)
             console.error(err);
         }
-
-                
     }
+
+    // const {
+    //     data,
+    //     isPending,
+    //     writeContract,
+    //     error,
+    //     isSuccess
+    // } = useWriteContract()
+
+    // const handleSubmit = async () => {
+    //     const isValid = validateForm();
+    //     if (!isValid) return;
+
+    //     try {
+    //         const result = writeContract({
+    //             abi: ECommerceABI,
+    //             address: ECommerceAddress as `0x${string}`,
+    //             functionName: "registerSeller",
+    //             args: [formdata.name, formdata.profileUri, formdata.location, formdata.phoneNumber]
+    //         })
+    //         // const approvalReceipt = await waitForTransactionReceipt(config, {
+    //         //     hash: result,
+    //         //     confirmations: 1
+    //         // })
+
+    //         // console.log("Approval confirmed: ", approvalReceipt);
+    //         console.log("Approval confirmed: ", result);
+    //         toast.success("Transaction Confirmed")
+    //     } catch (err) {
+    //         console.error("tx failed by async fn", error)
+    //         console.error("fatal error", err);
+    //     }
+
+
+    // }
 
     return (
         <>
-            <Toaster/>
+            <Toaster />
             <Card className="bg-gray-900/50 border-gray-800 p-8 w-[60%] mx-auto mt-20">
                 <div className="space-y-6">
                     <div>
@@ -162,7 +200,7 @@ export default function RegisterSeller() {
                         {errors.phoneNumber && <p className="text-red-400 text-sm mt-1">{errors.phoneNumber}</p>}
                     </div>
 
-                    <Button onClick={handleSubmit}>
+                    <Button onClick={handleRegister}>
                         Submit
                     </Button>
                 </div>

@@ -258,9 +258,9 @@ export function CategoryPage({ category }: CategoryPageProps) {
                   : "space-y-4"
               }
             >
-              {filteredAndSortedProducts.map((product) => (
+              {filteredAndSortedProducts.map((product, index) => (
                 <ProductCard
-                  key={product.id}
+                  key={`${product.id}-${index}`}
                   product={product}
                   viewMode={viewMode}
                   onClick={() => handleProductClick(product)}

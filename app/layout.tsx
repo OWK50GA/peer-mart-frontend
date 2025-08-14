@@ -6,6 +6,7 @@ import "./globals.css"
 import { AuthProvider } from "@/contexts/auth-context"
 import { Navbar } from "@/components/navbar"
 import { AvaxProvider } from "@/contexts/AvaxProvider"
+import { ThirdwebProvider } from "thirdweb/react"
 
 export const metadata: Metadata = {
   title: "PeerMart - Decentralized Commerce",
@@ -29,10 +30,12 @@ html {
         `}</style>
       </head>
       <body>
-        <AvaxProvider>
+        {/* <AvaxProvider> */}
+        <ThirdwebProvider>
           <Navbar />
           {children}
-        </AvaxProvider>
+        </ThirdwebProvider>
+        {/* </AvaxProvider> */}
       </body>
     </html>
   )
