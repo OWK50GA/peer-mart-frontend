@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,10 +14,13 @@ import { Separator } from "@/components/ui/separator"
 import { X, Plus, DollarSign, Package, ImageIcon, Loader2, CheckCircle } from "lucide-react"
 import { categories } from "@/lib/products"
 import { useRouter } from "next/navigation"
-import { useAccount, useChainId, useReadContract } from "wagmi"
-import { ECommerceABI } from "@/lib/abi/ecommerce-abi"
+import { ECommerceABI, ECommerceAddress } from "@/lib/abi/ecommerce-abi"
 import { USDTtoAVAX } from "@/lib/utils"
 import { FileUploadWithPreview } from "../file-upload-with-preview"
+import { useActiveAccount, useSendTransaction } from "thirdweb/react"
+import { client } from "@/contexts/thirdwebclient"
+import { avalancheFuji } from "thirdweb/chains"
+import { getContract, prepareContractCall, PreparedTransaction } from "thirdweb"
 
 interface ProductFormData {
   name: string
@@ -32,17 +35,10 @@ interface ProductFormData {
 
 export function ProductUploadForm() {
 
-  const { address } = useAccount();
-  const chainId = useChainId();
+  const account = useActiveAccount();
+  const address = account?.address;
 
-  const { data: SellerData } = useReadContract({
-    abi: ECommerceABI,
-    functionName: "sellers",
-    args: [address!]
-  })
-
-  
-  console.log(SellerData);
+  // console.log(SellerData);
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -163,6 +159,44 @@ export function ProductUploadForm() {
       tags: prev.tags.filter((tag) => tag !== tagToRemove),
     }))
   }
+
+  const contract = getContract({
+      client: client,
+      chain: avalancheFuji,
+      address: ECommerceAddress
+  });
+  console.log(contract);
+
+  const { push } = useRouter();
+  const { mutateAsync: listProduct, isPending, isSuccess: sendTxSuccessful, isError } = useSendTransaction();
+
+  const transaction = useMemo(() => {
+    if (!contract || currentStep !== 5) return;
+
+    const call = prepareContractCall({
+      contract,
+      method: "function createProduct(string memory _name, string memory _imageUrl, uint _price, string memory _description, uint _inventory) public",
+      params: [formData.name, formData.imageUri, BigInt(parseFloat(formData.priceUSD)), formData.description, BigInt(10)]
+    })
+    return call
+  }, [formData.name, formData.description, formData.imageUri, formData.priceUSD, formData.name])
+
+  const handleListProduct = async () => {
+    console.log("Starting... ")
+    setIsSubmitting(true);
+    try {
+      let txHash = await listProduct(transaction as PreparedTransaction);
+      setIsSuccess(true);
+      setTimeout(() => {
+        router.push("/products")
+      }, 3000)
+    } catch (err) {
+      console.error("Failed to create product: ", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
 
   const handleSubmit = async () => {
     if (!validateStep(4) || !address) return
@@ -305,9 +339,9 @@ export function ProductUploadForm() {
               <div>
                 <Label className="text-white mb-4 block">Category *</Label>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {categories.map((category) => (
+                  {categories.map((category, index) => (
                     <Card
-                      key={category.id}
+                      key={`${category.id}-${index}`}
                       className={`p-4 text-center cursor-pointer transition-all ${
                         formData.category === category.id
                           ? "bg-yellow-500/20 border-yellow-500"
@@ -611,7 +645,7 @@ export function ProductUploadForm() {
               </Button>
             ) : (
               <Button
-                onClick={handleSubmit}
+                onClick={handleListProduct}
                 disabled={isSubmitting}
                 className="bg-green-500 text-white hover:bg-green-600"
               >

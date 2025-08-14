@@ -4,12 +4,9 @@ import { useMemo, useState } from "react";
 import { Card } from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Button } from "../ui/button";
-// import { useConfig, useWriteContract } from "wagmi";
-import { ECommerceABI, ECommerceAddress } from "@/lib/abi/ecommerce-abi";
-// import { waitForTransactionReceipt } from "@wagmi/core";
+import { Button } from "../ui/button"
+import { ECommerceAddress } from "@/lib/abi/ecommerce-abi"
 import { Toaster } from "../ui/sonner";
-import { toast } from "sonner";
 import { FileUploadWithPreview } from "../file-upload-with-preview";
 import { useActiveAccount, useSendTransaction } from "thirdweb/react";
 import { useRouter } from "next/navigation";
@@ -45,17 +42,17 @@ export default function RegisterSeller() {
     };
 
     const [errors, setErrors] = useState<Partial<RegisterData>>({})
-    // const config = useConfig();
 
     const validateForm = () => {
-        if (formdata.name.length < 1) errors.name = "Name is Required"
-        if (formdata.profileUri.length < 1) errors.profileUri = "Profile URI is required"
-        if (formdata.location.length < 1) errors.location = "Location is required"
-        if (formdata.phoneNumber.length < 1) errors.phoneNumber = "Phone Number is required"
+        const newErrors: Partial<RegisterData> = {};
 
-        if (errors.name || errors.profileUri || errors.location || errors.phoneNumber) return false
+        if (!formdata.name) newErrors.name = "Name is required";
+        if (!formdata.profileUri) newErrors.profileUri = "Profile URI is required";
+        if (!formdata.location) newErrors.location = "Location is required";
+        if (!formdata.phoneNumber) newErrors.phoneNumber = "Phone Number is required";
 
-        return true
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     }
 
     const contract = getContract({
@@ -63,26 +60,33 @@ export default function RegisterSeller() {
         chain: avalancheFuji,
         address: ECommerceAddress
     })
+    console.log(contract);
 
     const account = useActiveAccount();
     const connectedAddress = account?.address;
+    console.log(connectedAddress)
 
     const { push } = useRouter();
     const { mutateAsync: registerSeller, isPending, isSuccess, isError } = useSendTransaction();
 
     const transaction = useMemo(() => {
-        const isValid = validateForm();
-        if (!contract || !connectedAddress || !isValid) return;
+        if (!contract) {
+            throw new Error("Not Prepared for call")
+        };
 
         const call = prepareContractCall({
             contract,
             method: "function registerSeller(string memory _name, string memory _profileURI, string memory _location, string memory _phoneNumber) public",
-            params: [formdata.name, formdata.profileUri, formdata.location, formdata.phoneNumber],
+            params: [formdata.name, formdata.profileUri, formdata.location, formdata.phoneNumber]
         })
         return call;
-    }, [formdata])
+    }, [formdata.name, formdata.profileUri, formdata.location, formdata.phoneNumber])
 
     const handleRegister = async () => {
+        const isValid = validateForm();
+        if (!isValid) return;
+        console.log("Started")
+        console.log(transaction);
         try {
             let txHash = await registerSeller(transaction as PreparedTransaction);
         } catch (err) {
