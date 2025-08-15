@@ -23,6 +23,10 @@ export function EscrowActions({ product, userOrder, onReportSeller }: EscrowActi
   const [showDisputeDialog, setShowDisputeDialog] = useState(false)
   const [disputeReason, setDisputeReason] = useState("")
 
+  const user = {
+    address: ""
+  }
+
   const handlePurchase = async () => {
     if (!user) return
 
@@ -217,7 +221,7 @@ export function EscrowActions({ product, userOrder, onReportSeller }: EscrowActi
             <DialogTitle>Confirm Receipt</DialogTitle>
             <DialogDescription className="text-gray-400">
               Are you sure you received the item and are satisfied with your purchase? This action will release{" "}
-              {userOrder.amount} to the seller and cannot be undone.
+              {/* {userOrder.amount} to the seller and cannot be undone. */}
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-4 mt-6">

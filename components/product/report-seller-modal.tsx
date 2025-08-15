@@ -18,6 +18,7 @@ interface ReportSellerModalProps {
 
 export function ReportSellerModal({ open, onOpenChange, product }: ReportSellerModalProps) {
   // const { user } = useAuth()
+  const user: any = {}
   const [reason, setReason] = useState<SellerReport["reason"] | "">("")
   const [description, setDescription] = useState("")
   const [isLoading, setIsLoading] = useState(false)

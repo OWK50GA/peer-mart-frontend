@@ -78,12 +78,12 @@ export function UserDashboard() {
           <div className="flex items-center gap-4 mb-4">
             <Avatar className="h-16 w-16 border-2 border-primary">
               <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
-                {user?.address?.slice(2, 4).toUpperCase()}
+                {("0xfADfB69C372c6ED8999744Eed531CEF82Ce366eA").slice(2, 4).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
               <h1 className="text-3xl font-bold text-foreground">Welcome back!</h1>
-              <p className="text-muted-foreground">{user?.address}</p>
+              <p className="text-muted-foreground">{("0xfADfB69C372c6ED8999744Eed531CEF82Ce366eA")}</p>
             </div>
           </div>
 
@@ -95,7 +95,7 @@ export function UserDashboard() {
                   <Wallet className="h-8 w-8 text-primary" />
                   <div>
                     <p className="text-sm text-muted-foreground">Balance</p>
-                    <p className="text-xl font-bold text-foreground">{balance} AVAX</p>
+                    <p className="text-xl font-bold text-foreground">{"30"} AVAX</p>
                   </div>
                 </div>
               </CardContent>
@@ -350,7 +350,7 @@ export function UserDashboard() {
                   <div>
                     <label className="text-sm font-medium text-foreground">Wallet Address</label>
                     <div className="mt-1 p-3 bg-muted rounded-lg">
-                      <code className="text-sm text-muted-foreground">{user?.address}</code>
+                      <code className="text-sm text-muted-foreground">{"0xfADfB69C372c6ED8999744Eed531CEF82Ce366eA"}</code>
                     </div>
                   </div>
 
