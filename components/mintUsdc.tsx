@@ -24,6 +24,7 @@ export default function MintUSDC() {
     const [isMinting, setIsMinting] = useState(false)
 
     const { mutateAsync: sendCalls, isSuccess: txSuccess, error: txError } = useSendBatchTransaction();
+    const { mutateAsync: mint } = useSendTransaction();
 
     const approvalTransaction = useMemo(() => {
         if (!contract) return;
@@ -51,7 +52,7 @@ export default function MintUSDC() {
         setIsMinting(true);
 
         try {
-            const txHash = await sendCalls([approvalTransaction as PreparedTransaction, mintTransaction as PreparedTransaction])
+            const txHash = await mint(mintTransaction as PreparedTransaction)
             if (txSuccess) {
                 console.log("transaction successful");
                 toast.success("Mint successful")
