@@ -7,6 +7,8 @@ import { MockUSDCAddress } from "@/lib/abi/mockusdc";
 import { client } from "@/contexts/thirdwebclient";
 import { useActiveAccount, useSendBatchTransaction, useSendTransaction } from "thirdweb/react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { Loader } from "lucide-react";
 
 export default function MintUSDC() {
 
@@ -52,15 +54,18 @@ export default function MintUSDC() {
             const txHash = await sendCalls([approvalTransaction as PreparedTransaction, mintTransaction as PreparedTransaction])
             if (txSuccess) {
                 console.log("transaction successful");
+                toast.success("Mint successful")
             }
         } catch (err) {
             console.error((err as Error).message);
+        } finally {
+            setIsMinting(false);
         }
     }
 
     return (
-        <Button onClick={handleMint}>
-            Mint 10000 USDC
+        <Button onClick={handleMint} disabled={isMinting}>
+            {isMinting ? <Loader /> : "Mint 10000 USDC"}
         </Button>
     )
 }

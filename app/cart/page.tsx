@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Minus, Plus, Trash2, CheckCircle2, XCircle, Star, Truck } from "lucide-react"
-import { useActiveAccount } from "thirdweb/react"
+import { useActiveAccount, useReadContract } from "thirdweb/react"
 import {
   createOrderFromCart,
   getOrdersForUser,
@@ -16,6 +16,10 @@ import {
   updateOrderState,
   type Order,
 } from "@/lib/orders"
+import { getContract } from "thirdweb"
+import { client } from "@/contexts/thirdwebclient"
+import { avalancheFuji } from "thirdweb/chains"
+import { ECommerceAddress } from "@/lib/abi/ecommerce-abi"
 
 // --- Replace with your actual escrow contract call via thirdweb ---
 // These are example stubs to mirror your Avalanche pattern.
@@ -41,8 +45,8 @@ type CartItem = {
 }
 
 export default function CartPage() {
-  const account = useActiveAccount()
-  const buyerAddress = account?.address ?? ""
+  const account = useActiveAccount();
+  const buyerAddress = account?.address;
 
   // Demo cart (swap to your app’s cart state/context if you have one)
   const [cartItems, setCartItems] = useState<CartItem[]>([])
@@ -78,6 +82,18 @@ export default function CartPage() {
     () => cartItems.reduce((a, it) => a + it.price * it.quantity, 0),
     [cartItems]
   )
+
+  const contract = getContract({
+    client: client,
+    chain: avalancheFuji,
+    address: ECommerceAddress
+  })
+
+  const {} = useReadContract({
+    contract,
+    method: "",
+    params: []
+  })
 
   // Load orders for this user
   useEffect(() => {

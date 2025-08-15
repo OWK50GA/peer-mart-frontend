@@ -89,6 +89,7 @@ export default function RegisterSeller() {
         console.log(transaction);
         try {
             let txHash = await registerSeller(transaction as PreparedTransaction);
+            push("/sell")
         } catch (err) {
             console.error(err);
         }

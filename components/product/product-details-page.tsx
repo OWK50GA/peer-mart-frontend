@@ -141,7 +141,7 @@ export function ProductDetailsPage({ productId }: ProductDetailsPageProps) {
               </div>
 
               <div className="flex items-baseline gap-4 mb-6">
-                <span className="text-4xl font-bold text-yellow-400">{refinedProduct?.price}</span>
+                <span className="text-4xl font-bold text-yellow-400">{refinedProduct?.price} USD</span>
                 {/* <span className="text-xl text-gray-400">(${product.priceUSD})</span> */}
               </div>
 

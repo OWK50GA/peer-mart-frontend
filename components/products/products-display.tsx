@@ -71,6 +71,8 @@ function ProductFetcher({ productId, viewMode }: ProductFetcherProps) {
   })
   console.log(product)
 
+  if (productId === 1 || productId === 2 || productId === 3) return;
+
   if (isLoading) {
     return (
       <Card className="bg-gray-900/50 border-gray-800 p-6 text-center text-gray-400">
@@ -103,7 +105,7 @@ function ProductCard({ product, viewMode }: ProductCardProps) {
       >
         <h2 className="text-white text-lg font-semibold">{product[1].toString()}</h2>
         <p className="text-gray-400">{product[6]}</p>
-        <p className="text-yellow-400 font-bold">{Number(product[3])} wei</p>
+        <p className="text-yellow-400 font-bold">{Number(product[3])} USD</p>
       </Card>
     )
   }
@@ -117,7 +119,7 @@ function ProductCard({ product, viewMode }: ProductCardProps) {
       <div className="p-4">
         <h2 className="text-white text-lg font-semibold">{product[1].toString()}</h2>
         <p className="text-gray-400">{product[6]}</p>
-        <p className="text-yellow-400 font-bold">{Number(product[3])} wei</p>
+        <p className="text-yellow-400 font-bold">{Number(product[3])} USD</p>
       </div>
     </Card>
   )
