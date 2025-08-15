@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation"
 import { ECommerceABI, ECommerceAddress } from "@/lib/abi/ecommerce-abi"
 import { USDTtoAVAX } from "@/lib/utils"
 import { FileUploadWithPreview } from "../file-upload-with-preview"
-import { useActiveAccount, useSendTransaction } from "thirdweb/react"
+import { useActiveAccount, useReadContract, useSendTransaction } from "thirdweb/react"
 import { client } from "@/contexts/thirdwebclient"
 import { avalancheFuji } from "thirdweb/chains"
 import { getContract, prepareContractCall, PreparedTransaction } from "thirdweb"
@@ -121,28 +121,6 @@ export function ProductUploadForm() {
     setCurrentStep((prev) => Math.max(prev - 1, 1))
   }
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files
-    if (files) {
-      // In a real app, you'd upload to a service like Vercel Blob or IPFS
-      // For now, we'll use placeholder URLs
-      const newImages = Array.from(files).map(
-        (file, index) => `/placeholder.svg?height=300&width=300&text=${encodeURIComponent(file.name)}`,
-      )
-      setFormData((prev) => ({
-        ...prev,
-        imageUri: newImages[0] // Max 5 images
-      }))
-    }
-  }
-
-  const removeImage = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      imageUri: "",
-    }))
-  }
-
   const addTag = () => {
     if (newTag.trim() && !formData.tags.includes(newTag.trim()) && formData.tags.length < 10) {
       setFormData((prev) => ({
@@ -167,22 +145,44 @@ export function ProductUploadForm() {
   });
   console.log(contract);
 
+  const { data: sellerDetails, isLoading } = useReadContract({
+    contract,
+    method:  "function sellers(address) view returns (string name, string profileURI, uint256 confirmedPurchases, uint256 canceledPurchases, uint256 reportedPurchases, uint256 rating)",
+    params: [address!]
+  })
+  console.log(sellerDetails)
+
   const { push } = useRouter();
   const { mutateAsync: listProduct, isPending, isSuccess: sendTxSuccessful, isError } = useSendTransaction();
 
   const transaction = useMemo(() => {
     if (!contract || currentStep !== 5) return;
+    if (!formData.name || !formData.description || !formData.imageUri || !formData.priceUSD) {
+      return null;
+    }
 
     const call = prepareContractCall({
       contract,
       method: "function createProduct(string memory _name, string memory _imageUrl, uint _price, string memory _description, uint _inventory) public",
-      params: [formData.name, formData.imageUri, BigInt(parseFloat(formData.priceUSD)), formData.description, BigInt(10)]
+      params: [formData.name, formData.imageUri, BigInt(Math.floor(parseFloat(formData.priceUSD))), formData.description, BigInt(10)]
     })
     return call
-  }, [formData.name, formData.description, formData.imageUri, formData.priceUSD, formData.name])
+  }, [formData.name, formData.description, formData.imageUri, formData.priceUSD, currentStep])
 
   const handleListProduct = async () => {
     console.log("Starting... ")
+
+    if (!transaction) {
+      console.error("Transaction is not ready. Missing required fields or contract not loaded.");
+      return;
+    }
+
+    // Additional validation
+    if (!validateStep(5)) {
+      console.error("Form validation failed");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       let txHash = await listProduct(transaction as PreparedTransaction);
@@ -190,55 +190,11 @@ export function ProductUploadForm() {
       setTimeout(() => {
         router.push("/products")
       }, 3000)
+      console.log(txHash);
     } catch (err) {
       console.error("Failed to create product: ", err);
     } finally {
       setIsSubmitting(false);
-    }
-  }
-
-
-  const handleSubmit = async () => {
-    if (!validateStep(4) || !address) return
-
-    setIsSubmitting(true)
-    try {
-      // In a real app, this would call a smart contract or API
-      const newProduct = {
-        id: Date.now().toString(),
-        name: formData.name,
-        description: formData.description,
-        price: `${formData.price} AVAX`,
-        priceUSD: Number(formData.priceUSD),
-        imageUri: formData.imageUri,
-        category: formData.category,
-        seller: {
-          // address: user.address,
-          // name: `Seller ${user.address.slice(0, 6)}`,
-          rating: 5.0,
-          totalSales: 0,
-        },
-        rating: 0,
-        reviews: 0,
-        inStock: true,
-        createdAt: new Date(),
-        tags: formData.tags,
-        condition: formData.condition as "new" | "used" | "refurbished",
-      }
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      setIsSuccess(true)
-
-      // Redirect after success
-      setTimeout(() => {
-        router.push("/products")
-      }, 3000)
-    } catch (error) {
-      console.error("Failed to create product:", error)
-    } finally {
-      setIsSubmitting(false)
     }
   }
 

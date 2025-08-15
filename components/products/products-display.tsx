@@ -1,125 +1,110 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { Card } from "@/components/ui/card"
-import { categories, mockProducts, type Product } from "@/lib/products"
-import Link from "next/link"
+import { useActiveAccount, useReadContract } from "thirdweb/react"
+import { getContract } from "thirdweb"
+import { client } from "@/contexts/thirdwebclient"
+import { avalancheFuji } from "thirdweb/chains"
+import { ECommerceAddress } from "@/lib/abi/ecommerce-abi"
 
 export function ProductsDisplay() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("all")
-  const [sortBy, setSortBy] = useState("newest")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const account = useActiveAccount()
+  
+  const contract = getContract({
+    client: client,
+    chain: avalancheFuji,
+    address: ECommerceAddress
+  })
 
-  const filteredAndSortedProducts = useMemo(() => {
-    let filtered = mockProducts
+  // Fetch total product count
+  const { data: productCount, isLoading: countLoading } = useReadContract({
+    contract,
+    method: "function productCount() view returns (uint256)"
+  })
 
-    // Filter by category
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter((product) => product.category === selectedCategory)
-    }
+  if (countLoading) {
+    return <div className="text-center text-white py-8">Loading products...</div>
+  }
 
-    // Filter by search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(
-        (product) =>
-          product.name.toLowerCase().includes(query) ||
-          product.description.toLowerCase().includes(query) ||
-          product.tags.some((tag) => tag.toLowerCase().includes(query)),
-      )
-    }
-
-    // Sort products
-    switch (sortBy) {
-      case "price-low":
-        filtered.sort((a, b) => a.priceUSD - b.priceUSD)
-        break
-      case "price-high":
-        filtered.sort((a, b) => b.priceUSD - a.priceUSD)
-        break
-      case "rating":
-        filtered.sort((a, b) => b.rating - a.rating)
-        break
-      case "newest":
-      default:
-        filtered.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-        break
-    }
-
-    return filtered
-  }, [searchQuery, selectedCategory, sortBy])
+  if (!productCount || Number(productCount) === 0) {
+    return <div className="text-center text-white py-8">No products found</div>
+  }
 
   return (
-    <div className="min-h-screen bg-premium-gradient">
-      {/* Categories Section */}
-      <section className="py-12 px-6 lg:px-8 border-b border-gray-800">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-4xl font-bold text-white mb-8 text-center">Browse Products</h1>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-            {categories.map((category) => (
-              <Link key={category.id} href={`/category/${category.id}`}>
-                <Card
-                  className={`bg-gray-900/50 border-gray-800 p-4 text-center cursor-pointer transition-all hover:bg-gray-900/70 ${
-                    selectedCategory === category.id ? "ring-2 ring-yellow-500" : ""
-                  }`}
-                >
-                  <div className="text-2xl mb-2">{category.icon}</div>
-                  <h3 className="text-sm font-medium text-white mb-1">{category.name}</h3>
-                  <p className="text-xs text-gray-400">{category.productCount}</p>
-                </Card>
-              </Link>
-            ))}
-          </div>
+    <div className="min-h-screen bg-premium-gradient py-8 px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        <div
+          className={
+            viewMode === "grid"
+              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              : "space-y-4"
+          }
+        >
+          {Array.from({ length: Number(productCount) }).map((_, index) => (
+            <ProductFetcher key={index} productId={index + 1} viewMode={viewMode} />
+          ))}
         </div>
-      </section>
-
-      {/* Products Grid/List */}
-      <section className="py-8 px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          {filteredAndSortedProducts.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="text-6xl mb-4">🔍</div>
-              <h3 className="text-2xl font-bold text-white mb-2">No products found</h3>
-              <p className="text-gray-400">Try adjusting your search or filters</p>
-            </div>
-          ) : (
-            <div
-              className={
-                viewMode === "grid"
-                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                  : "space-y-4"
-              }
-            >
-              {filteredAndSortedProducts.map((product) => (
-                <ProductCard key={product.id} product={product} viewMode={viewMode} />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
+      </div>
     </div>
   )
 }
 
+interface ProductFetcherProps {
+  productId: number
+  viewMode: "grid" | "list"
+}
+
+function ProductFetcher({ productId, viewMode }: ProductFetcherProps) {
+  const contract = getContract({
+    client: client,
+    chain: avalancheFuji,
+    address: ECommerceAddress
+  })
+
+  const { data: product, isLoading } = useReadContract({
+    contract,
+    method:
+      "function products(uint) view returns (uint256 id, string name, string imageUrl, uint256 price, address seller, string sellerName, string description, uint256 inventory, uint256 totalSold)",
+    params: [BigInt(productId)]
+  })
+  console.log(product)
+
+  if (isLoading) {
+    return (
+      <Card className="bg-gray-900/50 border-gray-800 p-6 text-center text-gray-400">
+        Loading product #{productId}...
+      </Card>
+    )
+  }
+
+  if (!product) return null
+
+  return <ProductCard product={product} viewMode={viewMode} />
+}
+
 interface ProductCardProps {
-  product: Product
+  product: any // You can type this properly
   viewMode: "grid" | "list"
 }
 
 function ProductCard({ product, viewMode }: ProductCardProps) {
-  // Updated to navigate to product details page
   const handleClick = () => {
-    window.location.href = `/product/${product.id}`
+    window.location.href = `/product/${(product[0]).toString()}`
   }
+  console.log(product[0])
 
   if (viewMode === "list") {
     return (
       <Card
         className="bg-gray-900/50 border-gray-800 p-6 cursor-pointer hover:bg-gray-900/70 transition-all"
         onClick={handleClick}
-      ></Card>
+      >
+        <h2 className="text-white text-lg font-semibold">{product[1].toString()}</h2>
+        <p className="text-gray-400">{product[6]}</p>
+        <p className="text-yellow-400 font-bold">{Number(product[3])} wei</p>
+      </Card>
     )
   }
 
@@ -127,6 +112,13 @@ function ProductCard({ product, viewMode }: ProductCardProps) {
     <Card
       className="bg-gray-900/50 border-gray-800 overflow-hidden hover:bg-gray-900/70 transition-all duration-300 group cursor-pointer"
       onClick={handleClick}
-    ></Card>
+    >
+      <img src={product[2]} alt={product.name} className="w-full h-48 object-cover" />
+      <div className="p-4">
+        <h2 className="text-white text-lg font-semibold">{product[1].toString()}</h2>
+        <p className="text-gray-400">{product[6]}</p>
+        <p className="text-yellow-400 font-bold">{Number(product[3])} wei</p>
+      </div>
+    </Card>
   )
 }

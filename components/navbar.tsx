@@ -87,6 +87,14 @@ export function Navbar() {
                   </Link>
                 )}
 
+                <Link
+                  href="/cart"
+                  className="text-gray-300 hover:text-yellow-400 px-3 py-2 text-sm font-medium transition-colors flex items-center"
+                >
+                  <ShoppingCart className="h-4 w-4 mr-1" />
+                  Cart
+                </Link>
+
                 <a
                   href="#"
                   className="text-gray-300 hover:text-yellow-400 px-3 py-2 text-sm font-medium transition-colors"
@@ -169,6 +177,14 @@ export function Navbar() {
                   Dashboard
                 </Link>
               )}
+
+              <Link
+                href="/cart"
+                className="text-gray-300 hover:text-yellow-400 px-3 py-2 text-base font-medium flex items-center"
+              >
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Cart
+              </Link>
 
               <a href="#" className="text-gray-300 hover:text-yellow-400 block px-3 py-2 text-base font-medium">
                 About

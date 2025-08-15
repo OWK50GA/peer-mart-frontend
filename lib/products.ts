@@ -46,14 +46,14 @@ export const categories: Category[] = [
     productCount: 89,
     image: "/brown-handbag.png",
   },
-  {
-    id: "fashion",
-    name: "Fashion",
-    description: "Accessories, Men's shades",
-    icon: "🏠",
-    productCount: 124,
-    image: "/white-shades",
-  },
+  // {
+  //   id: "fashion",
+  //   name: "Fashion",
+  //   description: "Accessories, Men's shades",
+  //   icon: "🏠",
+  //   productCount: 124,
+  //   image: "/white-shades",
+  // },
   {
     id: "sports",
     name: "Sports & Fitness",
@@ -80,7 +80,7 @@ export const categories: Category[] = [
   },
   {
     id: "art",
-    name: "Art & Collectibles",
+    name: "Collectibles",
     description: "Unique art pieces and collectibles",
     icon: "🎨",
     productCount: 92,
