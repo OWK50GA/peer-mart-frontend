@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
 
     // Return the IPFS URI
     const ipfsUri = `ipfs://${cid}`;
+    console.log(url);
 
     return NextResponse.json({
       success: true,

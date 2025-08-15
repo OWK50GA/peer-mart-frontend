@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,11 +10,11 @@ import { type Product, categories } from "@/lib/products"
 import Link from "next/link"
 import { SellerInfo } from "./seller-info"
 import { ProductReviews } from "./product-reviews"
-import { getContract } from "thirdweb"
+import { getContract, prepareContractCall, PreparedTransaction } from "thirdweb"
 import { client } from "@/contexts/thirdwebclient"
 import { avalancheFuji } from "thirdweb/chains"
 import { ECommerceAddress } from "@/lib/abi/ecommerce-abi"
-import { useReadContract } from "thirdweb/react"
+import { useReadContract, useSendTransaction } from "thirdweb/react"
 
 interface ProductDetailsPageProps {
   productId: number
@@ -34,6 +34,8 @@ export function ProductDetailsPage({ productId }: ProductDetailsPageProps) {
       "function products(uint) view returns (uint256 id, string name, string imageUrl, uint256 price, address seller, string sellerName, string description, uint256 inventory, uint256 totalSold)",
     params: [BigInt(productId)]
   })
+
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
   const refineProduct = () => {
     if (!product) return;
@@ -55,7 +57,30 @@ export function ProductDetailsPage({ productId }: ProductDetailsPageProps) {
   const [selectedImage, setSelectedImage] = useState(0)
   const [isWishlisted, setIsWishlisted] = useState(false)
 
-  // const category = categories.find((c) => c.id === product.category)
+  const { mutateAsync: purchaseProduct, isSuccess, isPending } = useSendTransaction()
+
+  const purchaseTransaction = useMemo(() => {
+    if (!contract) return;
+
+    const call = prepareContractCall({
+      contract,
+      method: "function purchaseProduct(uint256) public",
+      params: [BigInt(productId)],
+      value: refinedProduct?.price
+    })
+    return call;
+  }, [contract, productId])
+
+  const handlePurchase = async () => {
+    setIsPurchasing(true);
+
+    try {
+      const txHash = await purchaseProduct(purchaseTransaction as PreparedTransaction);
+      if (isSuccess) console.log("Transaction Successful");
+    } catch (err) {
+      console.error((err as Error).message);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-premium-gradient">
@@ -81,29 +106,9 @@ export function ProductDetailsPage({ productId }: ProductDetailsPageProps) {
                 className="w-full h-96 object-cover"
               />
             </Card>
-            <Button>
+            <Button onClick={handlePurchase}>
               Purchase Product
             </Button>
-
-            {/* {product.images.length > 1 && (
-              <div className="grid grid-cols-4 gap-2">
-                {product.images.map((image, index) => (
-                  <Card
-                    key={index}
-                    className={`bg-gray-900/50 border-gray-800 overflow-hidden cursor-pointer transition-all ${
-                      selectedImage === index ? "ring-2 ring-yellow-500" : ""
-                    }`}
-                    onClick={() => setSelectedImage(index)}
-                  >
-                    <img
-                      src={image || "/placeholder.svg"}
-                      alt={`${product.name} ${index + 1}`}
-                      className="w-full h-20 object-cover"
-                    />
-                  </Card>
-                ))}
-              </div>
-            )} */}
           </div>
 
           {/* Product Info */}
@@ -124,9 +129,6 @@ export function ProductDetailsPage({ productId }: ProductDetailsPageProps) {
               <div className="flex items-center gap-4 mb-4">
                 <div className="flex items-center">
                   <Star className="h-5 w-5 text-yellow-400 fill-current" />
-                  {/* <span className="text-lg text-gray-300 ml-2">
-                    {refinedProduct?.rating} ({product.reviews} reviews)
-                  </span> */}
                 </div>
                 <Button
                   variant="ghost"
@@ -188,19 +190,19 @@ export function ProductDetailsPage({ productId }: ProductDetailsPageProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-400">Condition:</span>
-                    {/* <span className="text-white ml-2 capitalize">{product.condition}</span> */}
+                    <span className="text-white ml-2 capitalize">{"New"}</span>
                   </div>
                   <div>
                     <span className="text-gray-400">Category:</span>
-                    {/* <span className="text-white ml-2">{category?.name}</span> */}
+                    <span className="text-white ml-2">{"Accessories"}</span>
                   </div>
                   <div>
                     <span className="text-gray-400">Listed:</span>
-                    {/* <span className="text-white ml-2">{product.createdAt.toLocaleDateString()}</span> */}
+                    <span className="text-white ml-2">{"14/8/2024"}</span>
                   </div>
                   <div>
                     <span className="text-gray-400">Stock:</span>
-                    {/* <span className="text-white ml-2">{product.inStock ? "Available" : "Out of Stock"}</span> */}
+                    <span className="text-white ml-2">{refinedProduct?.inventory}</span>
                   </div>
                 </div>
               </Card>

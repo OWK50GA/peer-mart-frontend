@@ -1,4 +1,3 @@
-// components/orders/chatbox.tsx
 "use client"
 
 import { useEffect, useRef, useState } from "react"

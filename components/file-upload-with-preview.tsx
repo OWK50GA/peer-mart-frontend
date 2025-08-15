@@ -125,7 +125,7 @@ export const FileUploadWithPreview: React.FC<FileUploadWithPreviewProps> = ({
       });
 
       // Call onChange with the IPFS URI
-      onChange(result.uri, file.name);
+      onChange(result.url, file.name);
 
       // Hide success message after 3 seconds
       setTimeout(() => {

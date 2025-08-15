@@ -346,3 +346,5 @@ export const MockUSDCABI = {
   "linkReferences": {},
   "deployedLinkReferences": {}
 } as const;
+
+export const MockUSDCAddress = '0xb7Aa8b8Be8fd0d07F5d00a94DCb7A187f69b21ff';

@@ -1,9 +1,14 @@
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Shield, Zap } from "lucide-react"
+import MintUSDC from "./mintUsdc"
 
 export function Hero() {
   return (
     <section className="relative overflow-hidden px-6 py-24 sm:py-32 lg:px-8">
+
+      <div className="w-fit mx-auto pb-9">
+        <MintUSDC />
+      </div>
       {/* Background decoration */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-yellow-500/10 rounded-full blur-3xl" />
