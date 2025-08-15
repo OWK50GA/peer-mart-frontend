@@ -7,11 +7,7 @@ import { avalancheFuji } from 'thirdweb/chains';
 export const CustomConnectButton = () => {
   return (
     <ConnectButton
-        client={client} 
-        accountAbstraction={{
-            chain: avalancheFuji,
-            sponsorGas: true
-        }}
+        client={client}
         connectButton={{
             className: 'rounded-4xl font-semibold w-40 py-4 px-2 bg-[#4E36E9] text-white',
             style: {

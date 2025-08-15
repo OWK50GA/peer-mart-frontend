@@ -6,15 +6,17 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ArrowLeft, Star, Heart, Shield, User } from "lucide-react"
-import { type Product, categories } from "@/lib/products"
 import Link from "next/link"
-import { SellerInfo } from "./seller-info"
 import { ProductReviews } from "./product-reviews"
 import { getContract, prepareContractCall, PreparedTransaction } from "thirdweb"
 import { client } from "@/contexts/thirdwebclient"
 import { avalancheFuji } from "thirdweb/chains"
 import { ECommerceAddress } from "@/lib/abi/ecommerce-abi"
-import { useReadContract, useSendTransaction } from "thirdweb/react"
+import { useActiveAccount, useReadContract, useSendBatchTransaction, useSendTransaction } from "thirdweb/react"
+import { toast } from "sonner"
+import { MockUSDCAddress } from "@/lib/abi/mockusdc"
+import { useRouter } from "next/navigation"
+import { Toaster } from "../ui/sonner"
 
 interface ProductDetailsPageProps {
   productId: number
@@ -28,6 +30,15 @@ export function ProductDetailsPage({ productId }: ProductDetailsPageProps) {
       address: ECommerceAddress
   });
 
+  const mockUsdcContract = getContract({
+    client,
+    chain: avalancheFuji,
+    address: MockUSDCAddress
+  })
+
+  const account = useActiveAccount();
+  const address = account?.address;
+
   const { data: product, isLoading } = useReadContract({
     contract,
     method:
@@ -36,6 +47,7 @@ export function ProductDetailsPage({ productId }: ProductDetailsPageProps) {
   })
 
   const [isPurchasing, setIsPurchasing] = useState(false);
+  const [isConfirmingPurchase, setIsConfirmingPurchase] = useState(false)
 
   const refineProduct = () => {
     if (!product) return;
@@ -54,31 +66,76 @@ export function ProductDetailsPage({ productId }: ProductDetailsPageProps) {
   }
   const refinedProduct = refineProduct();
 
-  const [selectedImage, setSelectedImage] = useState(0)
   const [isWishlisted, setIsWishlisted] = useState(false)
 
-  const { mutateAsync: purchaseProduct, isSuccess, isPending } = useSendTransaction()
+  const [isPurchased, setIsPurchased] = useState(false);
+
+  const { mutateAsync: purchaseProduct, isSuccess, isPending } = useSendTransaction();
+
+  // const { mutateAsync: approveTx, isSuccess: approveSuccess, isPending: approvePending } = useSendTransaction();
 
   const purchaseTransaction = useMemo(() => {
-    if (!contract) return;
+    if (!contract || !refinedProduct) return;
 
     const call = prepareContractCall({
       contract,
-      method: "function purchaseProduct(uint256) public",
+      method: "function purchaseProduct(uint256 _id) public",
       params: [BigInt(productId)],
-      value: refinedProduct?.price
+      value: refinedProduct.price
     })
     return call;
   }, [contract, productId])
 
+  const mintTransaction = useMemo(() => {
+      if (!mockUsdcContract) return;
+
+      const call = prepareContractCall({
+          contract: mockUsdcContract,
+          method: "function mint(address _to, uint256 _amount)",
+          params: [address as `0x${string}`, BigInt(1000)]
+      })
+      return call;
+  }, [address])
+
   const handlePurchase = async () => {
+    if (!mintTransaction) return;
     setIsPurchasing(true);
 
     try {
-      const txHash = await purchaseProduct(purchaseTransaction as PreparedTransaction);
+      const txHash = await purchaseProduct(mintTransaction as PreparedTransaction);
       if (isSuccess) console.log("Transaction Successful");
+      setIsPurchased(true);
     } catch (err) {
       console.error((err as Error).message);
+    }
+  }
+
+  const confirmPaymentTx = useMemo(() => {
+    if (!contract) return;
+
+    const call = prepareContractCall({
+      contract,
+      method: "function confirmPayment(uint _id) public",
+      params: [BigInt(productId)]
+    })
+    return call
+  }, [productId, contract])
+
+  const { push } = useRouter();
+
+  const handleConfirmPayment = async () => {
+    setIsConfirmingPurchase(true);
+
+    try {
+      const TxHash = await purchaseProduct(mintTransaction as PreparedTransaction)
+      toast.success("Purchase confirmed")
+      setTimeout(() => {
+        push("/")
+      }, 1500)
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setIsConfirmingPurchase(false);
     }
   }
 
@@ -95,6 +152,7 @@ export function ProductDetailsPage({ productId }: ProductDetailsPageProps) {
             Back to Products
           </Link>
         </div>
+        <Toaster />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Images */}
@@ -106,9 +164,21 @@ export function ProductDetailsPage({ productId }: ProductDetailsPageProps) {
                 className="w-full h-96 object-cover"
               />
             </Card>
-            <Button onClick={handlePurchase}>
+            <Button onClick={handlePurchase} disabled={isPurchased}>
               Purchase Product
             </Button>
+            {
+              isPurchased && (
+                <div className="flex flex-col gap-3">
+                  <Button onClick={handleConfirmPayment} className="bg-green-400">
+                    Confirm Payment
+                  </Button>
+                  <Button onClick={() => {}} className="bg-red-400">
+                    Cancel Order
+                  </Button>
+                </div>
+              )
+            }
           </div>
 
           {/* Product Info */}
